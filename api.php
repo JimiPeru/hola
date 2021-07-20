@@ -1,57 +1,112 @@
 <?php
+include "config.php";
+include "utils.php";
 
-include 'conexion.php';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+$dbConn =  connect($db);
+
+/*
+  listar todos los posts o solo uno
+ */
+if ($_SERVER['REQUEST_METHOD'] == 'GET')
+{
+    if (isset($_GET['name']))
+    {
+      //Mostrar un post
+      $sql = $dbConn->prepare("SELECT * FROM user where name=:name");
+      $sql->bindValue(':name', $_GET['name']);
+      $sql->execute();
+      header("HTTP/1.1 200 OK");
+      echo json_encode(  $sql->fetch(PDO::FETCH_ASSOC)  );
+      exit();
+	  }
+    else {
+      //Mostrar lista de post
+      $sql = $dbConn->prepare("SELECT * FROM user");
+      $sql->execute();
+      $sql->setFetchMode(PDO::FETCH_ASSOC);
+      header("HTTP/1.1 200 OK");
+      echo json_encode( $sql->fetchAll()  );
+      exit();
+	}
+}
+
+// Crear un nuevo post
+if ($_SERVER['REQUEST_METHOD'] == 'POST')
+{
+  // cuando viene en el link ...api.php de afuera
+
+  //viene de la funcion interna
+  $input = file_get_contents('php://input');
+  $input = json_decode($input, true);
+
+  if (isset($input)){}else{ $input = $_POST;}
+
+    $sql = "INSERT INTO user
+          (name, username, password, roles)
+          VALUES
+          (:name, :username, md5(:password), :roles)";
+    $statement = $dbConn->prepare($sql);
+    bindAllValues($statement, $input);
+    $statement->execute();
+    $postId = $dbConn->lastInsertId();
+    if($postId)
+    {
+      $input['id'] = $postId;
+      header("HTTP/1.1 200 OK");
+      echo json_encode($input);
+      unset($_POST);
+      unset($input);
+      exit();
+	 }
+}
+
+//Borrar
+if ($_SERVER['REQUEST_METHOD'] == 'DELETE')
+{
+  if (isset($_GET['name'])){
+  $name = $_GET['name']; // cuando viene en el link ...api.php?name=User5
+  }else{
+  // cuando se envía con un arreglo desde la función y tambien funciona desde postman body, raw {"name":"User2"}
+  $input = file_get_contents('php://input');
+  $data = json_decode($input, true);
+  $name = $data['name'];
+  }
+
+  $statement = $dbConn->prepare("DELETE FROM user where name=:name");
+  $statement->bindValue(':name', $name);
+  $statement->execute();
+	header("HTTP/1.1 200 OK");
+  unset($_GET);
+  unset($input);
+	exit();
+}
+
+//Actualizar
+if ($_SERVER['REQUEST_METHOD'] == 'PUT')
+{
     $input = file_get_contents('php://input');
+    if (isset($input)){}else{ $input = $_GET;}
+
     $data = json_decode($input, true);
-    $varName=$data['name'];
-    $varPass=md5($data['password']);
+    $data['password']=md5($data['password']);
+    $postId = $data['name'];
+    $fields = getParams($data);
 
-    header("HTTP/1.1 200 Metodo permitido");
-    mysqli_query ($con,"SET NAMES 'utf8'");
-    $re=mysqli_query($con,"SELECT * from user WHERE name='$varName' and password='$varPass'  ")or die(mysqli_error());
-    $f=mysqli_fetch_array($re);
-    echo json_encode($f);
+    $sql = "
+          UPDATE user
+          SET $fields
+          WHERE name='$postId'
+           ";
+    $statement = $dbConn->prepare($sql);
+    bindAllValues($statement, $data);
 
+    $statement->execute();
+    header("HTTP/1.1 200 OK");
+    exit();
 }
 
- if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    header("HTTP/1.1 200 Metodo permitido");
-    mysqli_query ($con,"SET NAMES 'utf8'");
-    $re=mysqli_query($con,"SELECT * from user   ")or die(mysqli_error());
-    $f=mysqli_fetch_array($re);
-    echo json_encode($f);
-}
-
- if ($_SERVER['REQUEST_METHOD'] == 'PUT') {
-    $varName='user7';
-    $userName='user7';
-    $varPass=md5('123456');
-    $varRoles='PAGE_2';
-
-    header("HTTP/1.1 200 Metodo permitido");
-    mysqli_query ($con,"SET NAMES 'utf8'");
-    $re = "INSERT INTO user (name, username, password, roles) 
-    VALUES ('$varName ','$userName ', '$varPass', '$varRoles')";
-
-    if ($con->query($re) === TRUE) {
-        echo "Registro ingresado successfully ".  $varName;
-    } else {
-        echo "Error ingreso: " . $con->error;
-    }
- }
- if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
-    $varName='user7';
-    header("HTTP/1.1 200 Metodo permitido");
-    mysqli_query ($con,"SET NAMES 'utf8'");
-    $res=mysqli_query($con,"SELECT name from user WHERE name='$varName'  ")or die(mysqli_error());
-    $re=mysqli_query($con,"DELETE from user WHERE name='$varName'  ")or die(mysqli_error());
-    $f=mysqli_fetch_array($res);
-    $result= explode(",", json_encode($f));
-	$result2= explode(":", end($result));
-	$resultf=str_replace('"','', substr( end($result2),0, -1 ));
-    echo $resultf .' eliminado ';
- }
+//En caso de que ninguna de las opciones anteriores se haya ejecutado
+header("HTTP/1.1 400 Bad Request");
 
 ?>
