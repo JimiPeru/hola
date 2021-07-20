@@ -1,37 +1,47 @@
 <?php 
 ob_start(); 
 session_start();
-include '../../sesion.php';
-include '../../conexion.php';
 include '../../utils.php';
 
 $name 	= trim($_POST['user']);
 $pass 	= trim($_POST['pass']);
 $auth	= False;
+$rol    = '';
 
-if ( isset($name) && isset($pass))
-{   $auth = false;
-    $result=array();
-    $respuesta=peticion_post($name, $pass);
+//echo $name;
+//echo '<br>'.$pass.'<br>';
 
-    $result= explode(',', $respuesta);
-	$result2= explode(":", end($result));
-    $user1= explode(":", $result[3]);
-    $user= str_replace('"', '', $user1[1]); 
-	$resultf=str_replace('"','', substr( end($result2),0, -1 ));
-    $roles = $resultf;
+if (isset($_POST['user']) and isset($_POST['pass'])){
+    $users=json_decode( peticion_get($name)); 
+    //print_r($users);
+   // echo $users->{'name'};
+        if(trim($users->{'name'}) == $name and trim($users->{'password'}) == md5($pass)){
 
-    $auth                   = true;
-    $_SESSION['auth']       = $auth   ;
-    $_SESSION['name']       = $name   ;					
-    $_SESSION['username']   = $user   ;
-    $_SESSION['password']   = $pass   ;
-    $_SESSION['roles']      = $roles   ;
+            $rol=$users->{'roles'};
 
-header("Location: index.php");
+            
+        }
+
+            $auth	= true;
+           // echo '<br>'.$rol;
+           $_SESSION['rol']         = $rol; 
+           $_SESSION['auth']        = true; 
+           $_SESSION['name']        = $name;
+           $_SESSION['timeuser']    = time();
+           $_SESSION['mensaje']     = ''; 
+           header("Location: index.php");
+
+
 }else{
-	header("Location: login.php");
+    $_SESSION['mensaje']      = 'User o password incorrecto'; 
+   
+    header("Location: login.php");
+    
+
 }
+
+
+
 
 ob_end_flush();
 				

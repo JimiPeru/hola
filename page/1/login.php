@@ -1,8 +1,10 @@
 <?php 
+session_start();
 $ver=$_SERVER['REQUEST_URI'];
 $link=explode("/",$ver);
 
 include '../../utils.php';
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -10,12 +12,22 @@ include '../../utils.php';
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/estilos.css" type="text/css" media="all"> 
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
     <link rel="stylesheet" href="../../css/bootstrap.min.css" type="text/css" media="all"> 
-    <script type="text/javascript" src="js/script.js"></script>
     <script type="text/javascript" src="../../js/bootstrap.min.js"></script>
+    <title>Bienvenida <?php echo  $link[3];?></title>
+    <script type="text/javascript">
 
-    <title>Bienvenida <?php echo $link[3];?></title>
+    $(document).ready(function() {   
+      $('#exampleInputText1').on('blur',function(){
+
+        var selectVal = $(this).val();
+        //alert(selectVal);
+      });
+    });
+
+    </script>
+
 </head>
 <body>
 
@@ -36,8 +48,9 @@ include '../../utils.php';
             <input type="password" class="form-control" name="pass" id="exampleInputPassword1" required>
           </div>
 
-          <button type="submit" onclick="peticion_post('ADMIN', 'adminpassword');" class="btn btn-primary">Submit</button>
+          <button type="submit" class="btn btn-primary">Submit</button>
         </form>
+        <?php if(isset($_SESSION['mensaje'])){echo $_SESSION['mensaje'];}else{echo $_SESSION['mensaje']='';} ?>
 
 
     </div>      
